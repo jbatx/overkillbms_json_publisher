@@ -1,5 +1,5 @@
 # overkillbms_json_poster
-Using an esp32, pull date form an overkill bms, format it as json and post it to a URL
+Using an esp32, pull date form an overkill bms, format it as json and post it to a URL.   Here's the related project post https://diysolarforum.com/threads/anyone-working-with-the-overkill-solar-arduino-lib.27811/page-3
 
 As of 9/24/21 This is incomplete and not yet working.  These are the issues
 # bms.cpp file is not tied to original repo
