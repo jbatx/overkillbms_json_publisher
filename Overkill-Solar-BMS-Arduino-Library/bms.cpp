@@ -572,11 +572,11 @@ void OverkillSolarBms::serial_rx_task() {
         Serial.print(bytes_available, DEC);
         Serial.println(" bytes available to read");
         
-        for (int i=0; i < bytes_available; i++) {
-           int c = serial->read();
-           Serial.print("read byte ");
-           Serial.println(c); 
-        }
+        // for (int i=0; i < bytes_available; i++) {
+        //    int c = serial->read();
+        //    Serial.print("read byte ");
+        //    Serial.println(c); 
+        // }
         
 #endif
         for (int i=0; i < bytes_available; i++) {
@@ -640,6 +640,8 @@ void OverkillSolarBms::serial_rx_task() {
 #ifdef BMS_OPTION_DEBUG_STATE_MACHINE
                     Serial.println("");
                     Serial.println("RX error! Status byte should have been 0x00 or 0x80!");
+                    Serial.print("rx_status: "); // JB
+                    Serial.println(rx_status); // JB
 #endif
                     num_rx_errors += 1;
                 }
@@ -722,6 +724,9 @@ void OverkillSolarBms::serial_rx_task() {
                     Serial.println(rx_checksum, HEX);
                 }
 #endif
+
+                // Serial.print("voltage----> ");
+                // Serial.println((uint16_t)(rx_data[0]  << 8) | (uint16_t)(rx_data[1]));
 
                 if (rx_checksum == calc_checksum && rx_status == 0x00) {
                     if (c == BMS_STOPBYTE) {

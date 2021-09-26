@@ -22,7 +22,7 @@ void setup() {
     //Serial1.begin(9600);
 
     Serial.begin(115200);                                                   // Define and start serial monitor
-    HWSerial.begin(9600, SERIAL_8N1, Receiver_Txd_pin, Receiver_Rxd_pin);
+    HWSerial.begin(9600, SERIAL_8N1, Receiver_Rxd_pin, Receiver_Txd_pin);
     
     bms.begin(&HWSerial);
     bms.set_query_rate(2000);  // Set query rate to 2000 milliseconds (2 seconds)
@@ -51,6 +51,8 @@ void setup() {
 
 void loop() {
     bms.main_task();
+    //bms.get_comm_error_state();
+
     bms.debug();
     // uint8_t soc = bms.get_state_of_charge();
 
@@ -60,11 +62,11 @@ void loop() {
     //     Gether up data from the bms
     //     */
 
-    //     // Get voltage
-    //     float voltage = bms.get_voltage();
-    //     // Serial.print("Voltage: ");
-    //     // Serial.print(voltage, 3);
-    //     // Serial.println(" volts");
+         // Get voltage
+        //  float voltage = bms.get_voltage();
+        //   Serial.print("Voltage: ");
+        //   Serial.print(voltage, 3);
+        //   Serial.println(" volts");
         
     //     // Get current
     //     float current = bms.get_current();
