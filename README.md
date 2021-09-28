@@ -8,14 +8,14 @@ Here's the related project post https://diysolarforum.com/threads/anyone-working
 
 Watch this video to see how to get and configure the AWS_IOT (MQTT) lib used in the sketch OR if you need help setting up AWS IoT Core: https://www.youtube.com/watch?v=2y0w977q_yk
 
-#####As of 9/24/21 This is incomplete and patially working.  These are the issues
+###As of 9/24/21 This is incomplete and patially working.  These are the issues
 
 1. This sketch depends on https://github.com/FurTrader/Overkill-Solar-BMS-Arduino-Library for serial communication with the bms.  
 However, to get it it to compile with the esp32 Arduino lib it needed to be cleaned up and fixed.   
 The bms.cpp version in this repo contains those fixes.  Until I get permission to branch and PR on the original repo, 
 I'm leaving this copy right here. 
 
-####Regarding the above
+###Regarding the above
 
 You must copy or symlink the Overkill-Solar-BMS-Arduino-Library lib in this repo to your Arduino/libraries directory
 
@@ -31,7 +31,7 @@ You must copy or symlink the Overkill-Solar-BMS-Arduino-Library lib in this repo
 
 I don't plan to make a wiring diagram because there are many youtube vids and articles on wiring a logic converter to an esp.
 
-####Mistakes I made
+###Mistakes I made
 1. Forgetting to connect the ground from the bms to the esp32
 2. reversing the rx and tx params to the begin() method
 3. not reversing the rx and tx pins connecting the esp32 to the bms
@@ -41,7 +41,7 @@ I don't plan to make a wiring diagram because there are many youtube vids and ar
 
 # Serverless - AWS IoT Core
 
-####Setup and Runtime Costs
+###Setup and Runtime Costs
 Based on the calculator that AWS provides, this message size and polling interval will cost less than $.2 (twenty cents) per month per bms.
 
 The basic AWS IoT Core set up steps are
@@ -53,5 +53,6 @@ The basic AWS IoT Core set up steps are
 6. Update the aws_iot_certificates.c file (watch the youtube video linked above)
  
 ##Developer notes
+
 The bms::get_cell_voltage() has been modified to return millivolts instead of volts because I want the raw data.  Also, it was roundig it to the nearest 100th.
 
