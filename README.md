@@ -13,7 +13,11 @@ Watch this video to see how to get and configure the AWS_IOT (MQTT) lib used in 
 1. This sketch depends on https://github.com/FurTrader/Overkill-Solar-BMS-Arduino-Library for serial communication with the bms.  
 However, to get it it to compile with the esp32 Arduino lib it needed to be cleaned up and fixed.   
 The bms.cpp version in this repo contains those fixes.  Until I get permission to branch and PR on the original repo, 
-I'm leaving this copy right here.
+I'm leaving this copy right here. 
+
+####Regarding the above
+
+You must copy or symlink the Overkill-Solar-BMS-Arduino-Library lib in this repo to your Arduino/libraries directory
 
 
 ## Circuit parts and wiring
