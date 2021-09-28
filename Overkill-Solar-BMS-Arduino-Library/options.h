@@ -7,8 +7,8 @@
 #define BMS_OPTION_SW_VERSION           // Comment this out if reading the software version is not needed.
 #define BMS_OPTION_NAME                 // Comment this out if reading the BMS name is not needed.
 #define BMS_OPTION_FAULT_COUNTS         // Comment this out to not store the number of times a fault occurred.
-#define BMS_OPTION_DEBUG                // Uncomment this to output debug logging data on the Serial monitor port.
-#define BMS_OPTION_DEBUG_STATE_MACHINE  // Uncomment this to output debug the state machine
+//#define BMS_OPTION_DEBUG                // Uncomment this to output debug logging data on the Serial monitor port.
+//#define BMS_OPTION_DEBUG_STATE_MACHINE  // Uncomment this to output debug the state machine
 
 
 #define BMS_TIMEOUT         1000  // The longest time to wait, in milliseconds for a response

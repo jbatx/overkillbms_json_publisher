@@ -1,5 +1,4 @@
 #!/bin/bash
-zip 
 aws lambda create-function --function-name  CreateTableAddRecordsAndRead --runtime python3.8 \
 --zip-file fileb://app.zip --handler app.handler \
 --role arn:aws:iam::123456789012:role/lambda-vpc-role \
