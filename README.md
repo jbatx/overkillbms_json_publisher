@@ -16,9 +16,26 @@ The bms.cpp version in this repo contains those fixes.  Until I get permission t
 I'm leaving this copy right here.
 
 
-## Server ..less side
+## Circuit parts and wiring
 
-#### Serverless - AWS IoT Core
+####What I used
+
+1. KeeYees WROOM ESP32 which is apparently the same as a NodeMCU ESP32S https://www.amazon.com/dp/B07QCP2451?psc=1&ref=ppx_yo2_dt_b_product_details
+2. KeeYees logic level converter https://www.amazon.com/dp/B07LG646VS?psc=1&ref=ppx_yo2_dt_b_product_details
+3. Small breadboards...
+4. Jumper wires...
+
+I don't plan to make a wiring diagram because there are many youtube vids and articles on wiring a logic converter to an esp.
+
+####Mistakes I made
+1. Forgetting to connect the ground from the bms to the esp32
+2. reversing the rx and tx params to the begin() method
+3. not reversing the rx and tx pins connecting the esp32 to the bms
+4. not using (or knowing) what a logic converter is
+5. debugging this at 2am
+6. conecting the 5v power to the low voltage side of the logic converter
+
+# Serverless - AWS IoT Core
 
 ####Setup and Runtime Costs
 Based on the calculator that AWS provides, this message size and polling interval will cost less than $.2 (twenty cents) per month per bms.
