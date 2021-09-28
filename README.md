@@ -1,4 +1,4 @@
-## OverkillSolar BMS data retriever and json poster
+## OverkillSolar BMS data retriever and json publisher / poster
 In simplest terms, this repo is meant to facilitate using an esp32, pull data from an Overkill Solar bms, format it as json and post it to a URL OR Publish to an MQTT topic on AWS IoT Core.  The latter is the default and you'll have to change things up in the code to use the url post function.  Should be pretty easy.
 
 This repo includes serverless code that uses aws for receiving the post and storing it.  Since an Overkill bms is a tested and support JBD bms, it'll with
