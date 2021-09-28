@@ -24,10 +24,10 @@ HardwareSerial HWSerial(2); // Define a Serial port instance called 'Receiver' u
 
 float voltage;
 float current;
-uint8_t soc;
-float lowest;
-float highest;
-float voltageDiff;
+float soc;
+double lowest;
+double highest;
+double voltageDiff;
 bool cFet;
 bool dFet;
 bool single_cell_overvoltage_protection; 
@@ -93,7 +93,6 @@ void loop() {
     //bms.get_comm_error_state();
 
     //bms.debug();
-    uint8_t soc = bms.get_state_of_charge();
 
     if (millis() - last_soc_check_time > SOC_POLL_RATE) {
 
@@ -105,65 +104,78 @@ void loop() {
          // Get voltage
         float tmpVoltage = bms.get_voltage();
         if (tmpVoltage != voltage) {
-          jsonStr += "\"voltage\":" + (String)voltage;
+          voltage = tmpVoltage;
+          jsonStr += "\"voltge\":" + (String)voltage + setDelim();
         }
         
          // Get current
         float tmpCurrent = bms.get_current();
+        Serial.print("current: ");
+        Serial.println(tmpCurrent);
+        
         if (tmpCurrent != current) {
           current = tmpCurrent;
-          jsonStr += ",\"current\":" + (String)current;
-        }     
+          jsonStr += "\"current\":" + (String)current + setDelim();
+        }  
 
-        // Get voltage diff
-        float tmpHighest;
-        tmpHighest = 99;
-        float tmpLowest;
-        tmpLowest = 0;
-        float v = 0;
-        for(int i=0; i < 16; i++){
-          v = bms.get_cell_voltage(i);
-          if(v < lowest){
-            tmpLowest = v;
-          }
-          if(v > highest){
-            tmpHighest = v;
-          }
-        }
-
-        if (tmpLowest != lowest) {
-          lowest = tmpLowest;
-          jsonStr += ",\"lowestCell\":" + (String)lowest;
-        }
-
-        if (tmpHighest != highest) {
-          highest = tmpHighest;
-          jsonStr += ",\"highestCell\":" + (String)highest;
-        }
-        if (tmpHighest - tmpLowest != voltageDiff) {
-          voltageDiff = highest - lowest;
-          jsonStr += ",\"voltageDiff\":" + (String)voltageDiff;
-        }
-        
         // Get state of charge
-        uint8_t tmpSoc = bms.get_state_of_charge();
+        float tmpSoc = bms.get_state_of_charge();
+        Serial.print("SOC: ");
+        Serial.print(tmpSoc);
+        Serial.print(" ");
+        Serial.println(soc);
         if(tmpSoc != soc){
           soc = tmpSoc;
-          jsonStr += ",\"soc\":" + (String)soc;
+          jsonStr += "\"soc\":" + (String)soc + setDelim();
         }
         
         // Get charge fet status
         uint8_t tmpCFet = bms.get_charge_mosfet_status() ? 1 : 0;
         if (tmpCFet != cFet) {
           cFet = tmpCFet;
-          jsonStr += ",\"cFet\":" + (String)cFet;
+          jsonStr += "\"cFet\":" + (String)cFet + setDelim();
         }
 
         // Get discharge fet status
         uint8_t tmpDFet = bms.get_discharge_mosfet_status() ? 1 : 0;
-        if (tmpDFet != cFet) {
+        if (tmpDFet != dFet) {
           dFet = tmpDFet;
-          jsonStr += ",\"dFet\":" + (String)dFet;
+          jsonStr += "\"dFet\":" + (String)dFet + setDelim();
+        }   
+
+        // Get voltage diff
+        double tmpHighest;
+        tmpHighest = 0;
+        double tmpLowest;
+        tmpLowest = 99;
+        double v = 0;
+        int cNum = 1;
+        for(int i=0; i < 16; i++){
+          v = bms.get_cell_voltage(i);
+          cNum += 1;
+          jsonStr += "\"cell_" + (String)cNum + "_v\":" + (String)v + setDelim();
+
+          if(v < tmpLowest){
+            tmpLowest = v;
+          }
+          if(v > tmpHighest){
+            tmpHighest = v;
+          }
+        }
+
+        if (tmpLowest != lowest) {
+          lowest = tmpLowest;
+          jsonStr += "\"lCell\":" + (String)lowest + setDelim();
+        }
+
+        if (tmpHighest != highest) {
+          highest = tmpHighest;
+          jsonStr += "\"hCell\":" + (String)highest + setDelim();
+        }
+        double tmpVoltageDiff = tmpHighest - tmpLowest;
+        if ( tmpVoltageDiff != voltageDiff) {
+          voltageDiff = highest - lowest;
+          jsonStr += "\"vDiff\":" + (String)voltageDiff + setDelim();
         }
       
         ProtectionStatus flags = bms.get_protection_status();
@@ -171,68 +183,68 @@ void loop() {
         bool tmp_single_cell_overvoltage_protection = flags.single_cell_overvoltage_protection;
         if ( tmp_single_cell_overvoltage_protection != single_cell_overvoltage_protection) {
           single_cell_overvoltage_protection = tmp_single_cell_overvoltage_protection;
-          jsonStr += "\"single_cell_overvoltage_protection\":" + (String)flags.single_cell_overvoltage_protection;
+          jsonStr += "\"single_cell_overvoltage_p\":" + (String)flags.single_cell_overvoltage_protection + setDelim();
         }
 
         bool tmp_single_cell_undervoltage_protection = flags.single_cell_undervoltage_protection; 
         if ( tmp_single_cell_undervoltage_protection != single_cell_undervoltage_protection) {
           single_cell_undervoltage_protection = tmp_single_cell_undervoltage_protection;
-          jsonStr += ",\"single_cell_undervoltage_protection\":" + (String)flags.single_cell_undervoltage_protection;
+          jsonStr += "\"single_cell_undervoltage_p\":" + (String)flags.single_cell_undervoltage_protection + setDelim();
         }
         bool tmp_whole_pack_overvoltage_protection = flags.whole_pack_overvoltage_protection;
         if ( tmp_whole_pack_overvoltage_protection != whole_pack_overvoltage_protection) {
           whole_pack_overvoltage_protection = tmp_whole_pack_overvoltage_protection;
-          jsonStr += ",\"whole_pack_overvoltage_protection\":" + (String)flags.whole_pack_overvoltage_protection;
+          jsonStr += "\"whole_pack_overvoltage_p\":" + (String)flags.whole_pack_overvoltage_protection + setDelim();
         }
         bool tmp_whole_pack_undervoltage_protection = flags.whole_pack_undervoltage_protection; 
         if ( tmp_whole_pack_undervoltage_protection != whole_pack_undervoltage_protection) {
           whole_pack_undervoltage_protection = tmp_whole_pack_undervoltage_protection;
-          jsonStr += ",\"whole_pack_undervoltage_protection\":" + (String)flags.whole_pack_undervoltage_protection;
+          jsonStr += "\"whole_pack_undervoltage_p\":" + (String)flags.whole_pack_undervoltage_protection + setDelim();
         }
         bool tmp_charging_over_temperature_protection = flags.charging_over_temperature_protection; 
         if ( tmp_charging_over_temperature_protection != charging_over_temperature_protection) {
           charging_over_temperature_protection = tmp_charging_over_temperature_protection;
-          jsonStr += ",\"charging_over_temperature_protection\":" + (String)flags.charging_over_temperature_protection;
+          jsonStr += "\"charging_over_temperature_p\":" + (String)flags.charging_over_temperature_protection + setDelim();
         }
         bool tmp_charging_low_temperature_protection = flags.charging_low_temperature_protection;
         if ( tmp_charging_low_temperature_protection != charging_low_temperature_protection) {
           charging_low_temperature_protection = tmp_charging_low_temperature_protection;
-          jsonStr += ",\"charging_low_temperature_protection\":" + (String)flags.charging_low_temperature_protection;
+          jsonStr += "\"charging_low_temperature_p\":" + (String)flags.charging_low_temperature_protection + setDelim();
         } 
         bool tmp_discharge_over_temperature_protection = flags.discharge_over_temperature_protection; 
         if ( tmp_discharge_over_temperature_protection != discharge_over_temperature_protection) {    
           discharge_over_temperature_protection = tmp_discharge_over_temperature_protection;
-          jsonStr += ",\"discharge_over_temperature_protection\":" + (String)flags.discharge_over_temperature_protection;
+          jsonStr += "\"discharge_over_temperature_p\":" + (String)flags.discharge_over_temperature_protection + setDelim();
         }
         bool tmp_discharge_low_temperature_protection = flags.discharge_low_temperature_protection;
         if ( tmp_discharge_low_temperature_protection != discharge_low_temperature_protection) {
           discharge_low_temperature_protection = tmp_discharge_low_temperature_protection;
-          jsonStr += ",\"discharge_low_temperature_protection\":" + (String)flags.discharge_low_temperature_protection;
+          jsonStr += "\"discharge_low_temperature_p\":" + (String)flags.discharge_low_temperature_protection + setDelim();
         } 
         bool tmp_charging_overcurrent_protection = flags.charging_overcurrent_protection;
         if ( tmp_charging_overcurrent_protection != charging_overcurrent_protection) {
           charging_overcurrent_protection = tmp_charging_overcurrent_protection;
-          jsonStr += ",\"charging_overcurrent_protection\":" + (String)flags.charging_overcurrent_protection;
+          jsonStr += "\"charging_overcurrent_p\":" + (String)flags.charging_overcurrent_protection + setDelim();
         }
         bool tmp_discharge_overcurrent_protection = flags.discharge_overcurrent_protection;
         if ( tmp_discharge_overcurrent_protection != discharge_overcurrent_protection) {
           discharge_overcurrent_protection = tmp_discharge_overcurrent_protection;
-          jsonStr += ",\"discharge_overcurrent_protection\":" + (String)flags.discharge_overcurrent_protection;
+          jsonStr += "\"discharge_overcurrent_p\":" + (String)flags.discharge_overcurrent_protection + setDelim();
         } 
         bool tmp_short_circuit_protection = flags.short_circuit_protection;
         if ( tmp_short_circuit_protection != short_circuit_protection) {
           short_circuit_protection = tmp_short_circuit_protection;
-          jsonStr += ",\"short_circuit_protection\":" + (String)flags.short_circuit_protection;
+          jsonStr += "\"short_circuit_p\":" + (String)flags.short_circuit_protection + setDelim();
         } 
         bool tmp_front_end_detection_ic_error = flags.front_end_detection_ic_error;
         if ( tmp_front_end_detection_ic_error != front_end_detection_ic_error) {
           front_end_detection_ic_error = tmp_front_end_detection_ic_error;
-          jsonStr += ",\"front_end_detection_ic_error\":" + (String)flags.front_end_detection_ic_error;
+          jsonStr += "\"front_end_detection_ic_error\":" + (String)flags.front_end_detection_ic_error + setDelim();
         }
         bool tmp_software_lock_mos = flags.software_lock_mos;
         if ( tmp_software_lock_mos != software_lock_mos) {
           software_lock_mos = tmp_software_lock_mos;
-          jsonStr += ",\"software_lock_mos\":" + (String)flags.software_lock_mos;
+          jsonStr += "\"software_lock_mos\":" + (String)flags.software_lock_mos + setDelim();
         }
 
         // Get bms name
@@ -240,11 +252,11 @@ void loop() {
 
         // Build the json we'll send
         if ( jsonStr.length() > 1) {
-          jsonStr += ",\"name\":\"" + (String)"\"" + name + (String)"\"";
+          jsonStr += "\"name\":\"" + (String)"\"" + name + (String)"\"";
           jsonStr += "}";
           Serial.print(jsonStr);
           Serial.println();
-          publishMqtt((String)jsonStr);
+          publishMqtt(jsonStr);
         } else {
           Serial.println("Nothing has chagned");
         }
@@ -299,4 +311,8 @@ void postData(){
     }
 
     http.end();
+}
+
+char setDelim () {
+  return ',';
 }
