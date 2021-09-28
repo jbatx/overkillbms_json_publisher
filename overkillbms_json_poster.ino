@@ -6,7 +6,7 @@
 
 #define CLIENT_ID "test_3"// thing unique ID, this id should be unique among all things associated with your AWS account.
 #define MQTT_TOPIC "$aws/things/test3/shadow/update" //topic for the MQTT data
-#define AWS_HOST "a1a2z1xtkva2kp-ats.iot.us-east-2.amazonaws.com" // your host for uploading data to AWS,
+#define AWS_HOST "asdasdas" // your host for uploading data to AWS,
 
 AWS_IOT aws;
 
@@ -15,7 +15,7 @@ const char* host = "https://postb.in/1631759911516-7197994671296";
 OverkillSolarBms bms = OverkillSolarBms();
 uint32_t last_soc_check_time;
 
-#define SOC_POLL_RATE 2000  // milliseconds
+#define SOC_POLL_RATE 300000  // send evert five minutes (milliseconds)
 
 HardwareSerial HWSerial(2); // Define a Serial port instance called 'Receiver' using serial port 2
 
@@ -25,9 +25,9 @@ HardwareSerial HWSerial(2); // Define a Serial port instance called 'Receiver' u
 float voltage;
 float current;
 float soc;
-double lowest;
-double highest;
-double voltageDiff;
+float lowest;
+float highest;
+float voltageDiff;
 bool cFet;
 bool dFet;
 bool single_cell_overvoltage_protection; 
@@ -43,8 +43,9 @@ bool discharge_overcurrent_protection;
 bool short_circuit_protection; 
 bool front_end_detection_ic_error;
 bool software_lock_mos;
-
-
+std::vector<float> cellVoltages(16);
+std::vector<float> cellBalanceStatus(16);
+std::vector<float> tempSensors(3);
 
 void setup() {
     static const uint8_t LED_BUILTIN = 2;
@@ -90,11 +91,8 @@ void setup() {
 
 void loop() {
     bms.main_task();
-    //bms.get_comm_error_state();
 
-    //bms.debug();
-
-    if (millis() - last_soc_check_time > SOC_POLL_RATE) {
+    if (millis() - last_soc_check_time > SOC_POLL_RATE ||  last_soc_check_time == 0) {
 
          String jsonStr = "{";
          /**
@@ -133,28 +131,80 @@ void loop() {
         uint8_t tmpCFet = bms.get_charge_mosfet_status() ? 1 : 0;
         if (tmpCFet != cFet) {
           cFet = tmpCFet;
-          jsonStr += "\"cFet\":" + (String)cFet + setDelim();
+          jsonStr += "\"c_fet\":" + (String)cFet + setDelim();
         }
 
         // Get discharge fet status
         uint8_t tmpDFet = bms.get_discharge_mosfet_status() ? 1 : 0;
         if (tmpDFet != dFet) {
           dFet = tmpDFet;
-          jsonStr += "\"dFet\":" + (String)dFet + setDelim();
+          jsonStr += "\"d_fet\":" + (String)dFet + setDelim();
         }   
 
-        // Get voltage diff
-        double tmpHighest;
-        tmpHighest = 0;
-        double tmpLowest;
-        tmpLowest = 99;
-        double v = 0;
-        int cNum = 1;
+        // Get cell balancing status
+        bool bs;
+        int cNum = 0;
         for(int i=0; i < 16; i++){
-          v = bms.get_cell_voltage(i);
-          cNum += 1;
-          jsonStr += "\"cell_" + (String)cNum + "_v\":" + (String)v + setDelim();
+          
+          bs = bms.get_balance_status(i);
+          cNum = i + 1; // for easily interpretable names
+          Serial.print("Cell ");
+          Serial.print(cNum);
+          Serial.print(" Balance status:");
+          Serial.print(bs);
+          Serial.print(" previous was ");
+          Serial.println(cellBalanceStatus[i]);
 
+          // See if balance status has changed
+          if (cellBalanceStatus[i] != bs){
+            cellBalanceStatus[i] = bs;
+            jsonStr += "\"c_" + (String)cNum + "_balancing\":" + (String)bs + setDelim();
+          }
+        }
+
+        // Get temp sensor vals
+        float t;
+        int tNum = 0;
+        for (uint8_t i=0; i<bms.get_num_ntcs(); i++) {
+          
+          t = bms.get_ntc_temperature(i);
+          tNum = i + 1; // for easily interpretable names
+          Serial.print("temp sensor ");
+          Serial.print(tNum);
+          Serial.print(" temp:");
+          Serial.print(t);
+          Serial.print(" previous was ");
+          Serial.println(tempSensors[i]);
+
+          // See if temp has changed
+          if (tempSensors[i] != t){
+            tempSensors[i] = t;
+            jsonStr += "\"ts_" + (String)tNum + "\":" + (String)t + setDelim();
+          }
+        }
+
+
+        // Get voltage diff and cell voltages
+        float tmpHighest = 0;
+        float tmpLowest = 9999;
+        float v = 0;
+        cNum = 0;
+        for(int i=0; i < 16; i++){
+
+          v = bms.get_cell_voltage(i);
+          cNum = i + 1; // for easily interpretable names
+    
+          Serial.print(cNum);
+          Serial.print("Cell voltage: ");
+          Serial.print(v);
+          Serial.print(" Previous was ");
+          Serial.println(cellVoltages[i]);
+
+          // See if cell voltage has changed
+          if (cellVoltages[i] != v){
+            cellVoltages[i] = v;
+            jsonStr += "\"c_" + (String)cNum + "_v\":" + (String)v + setDelim();
+          }
           if(v < tmpLowest){
             tmpLowest = v;
           }
@@ -165,17 +215,17 @@ void loop() {
 
         if (tmpLowest != lowest) {
           lowest = tmpLowest;
-          jsonStr += "\"lCell\":" + (String)lowest + setDelim();
+          jsonStr += "\"lcv\":" + (String)lowest + setDelim();
         }
 
         if (tmpHighest != highest) {
           highest = tmpHighest;
-          jsonStr += "\"hCell\":" + (String)highest + setDelim();
+          jsonStr += "\"hcv\":" + (String)highest + setDelim();
         }
-        double tmpVoltageDiff = tmpHighest - tmpLowest;
+        float tmpVoltageDiff = tmpHighest - tmpLowest;
         if ( tmpVoltageDiff != voltageDiff) {
           voltageDiff = highest - lowest;
-          jsonStr += "\"vDiff\":" + (String)voltageDiff + setDelim();
+          jsonStr += "\"v_diff\":" + (String)voltageDiff + setDelim();
         }
       
         ProtectionStatus flags = bms.get_protection_status();
@@ -183,53 +233,53 @@ void loop() {
         bool tmp_single_cell_overvoltage_protection = flags.single_cell_overvoltage_protection;
         if ( tmp_single_cell_overvoltage_protection != single_cell_overvoltage_protection) {
           single_cell_overvoltage_protection = tmp_single_cell_overvoltage_protection;
-          jsonStr += "\"single_cell_overvoltage_p\":" + (String)flags.single_cell_overvoltage_protection + setDelim();
+          jsonStr += "\"sc_overvoltage_p\":" + (String)flags.single_cell_overvoltage_protection + setDelim();
         }
 
         bool tmp_single_cell_undervoltage_protection = flags.single_cell_undervoltage_protection; 
         if ( tmp_single_cell_undervoltage_protection != single_cell_undervoltage_protection) {
           single_cell_undervoltage_protection = tmp_single_cell_undervoltage_protection;
-          jsonStr += "\"single_cell_undervoltage_p\":" + (String)flags.single_cell_undervoltage_protection + setDelim();
+          jsonStr += "\"sc_undervoltage_p\":" + (String)flags.single_cell_undervoltage_protection + setDelim();
         }
         bool tmp_whole_pack_overvoltage_protection = flags.whole_pack_overvoltage_protection;
         if ( tmp_whole_pack_overvoltage_protection != whole_pack_overvoltage_protection) {
           whole_pack_overvoltage_protection = tmp_whole_pack_overvoltage_protection;
-          jsonStr += "\"whole_pack_overvoltage_p\":" + (String)flags.whole_pack_overvoltage_protection + setDelim();
+          jsonStr += "\"wp_overvoltage_p\":" + (String)flags.whole_pack_overvoltage_protection + setDelim();
         }
         bool tmp_whole_pack_undervoltage_protection = flags.whole_pack_undervoltage_protection; 
         if ( tmp_whole_pack_undervoltage_protection != whole_pack_undervoltage_protection) {
           whole_pack_undervoltage_protection = tmp_whole_pack_undervoltage_protection;
-          jsonStr += "\"whole_pack_undervoltage_p\":" + (String)flags.whole_pack_undervoltage_protection + setDelim();
+          jsonStr += "\"wp_undervoltage_p\":" + (String)flags.whole_pack_undervoltage_protection + setDelim();
         }
         bool tmp_charging_over_temperature_protection = flags.charging_over_temperature_protection; 
         if ( tmp_charging_over_temperature_protection != charging_over_temperature_protection) {
           charging_over_temperature_protection = tmp_charging_over_temperature_protection;
-          jsonStr += "\"charging_over_temperature_p\":" + (String)flags.charging_over_temperature_protection + setDelim();
+          jsonStr += "\"ch_over_temp_p\":" + (String)flags.charging_over_temperature_protection + setDelim();
         }
         bool tmp_charging_low_temperature_protection = flags.charging_low_temperature_protection;
         if ( tmp_charging_low_temperature_protection != charging_low_temperature_protection) {
           charging_low_temperature_protection = tmp_charging_low_temperature_protection;
-          jsonStr += "\"charging_low_temperature_p\":" + (String)flags.charging_low_temperature_protection + setDelim();
+          jsonStr += "\"ch_low_temp_p\":" + (String)flags.charging_low_temperature_protection + setDelim();
         } 
         bool tmp_discharge_over_temperature_protection = flags.discharge_over_temperature_protection; 
         if ( tmp_discharge_over_temperature_protection != discharge_over_temperature_protection) {    
           discharge_over_temperature_protection = tmp_discharge_over_temperature_protection;
-          jsonStr += "\"discharge_over_temperature_p\":" + (String)flags.discharge_over_temperature_protection + setDelim();
+          jsonStr += "\"disch_over_temp_p\":" + (String)flags.discharge_over_temperature_protection + setDelim();
         }
         bool tmp_discharge_low_temperature_protection = flags.discharge_low_temperature_protection;
         if ( tmp_discharge_low_temperature_protection != discharge_low_temperature_protection) {
           discharge_low_temperature_protection = tmp_discharge_low_temperature_protection;
-          jsonStr += "\"discharge_low_temperature_p\":" + (String)flags.discharge_low_temperature_protection + setDelim();
+          jsonStr += "\"disch_low_temp_p\":" + (String)flags.discharge_low_temperature_protection + setDelim();
         } 
         bool tmp_charging_overcurrent_protection = flags.charging_overcurrent_protection;
         if ( tmp_charging_overcurrent_protection != charging_overcurrent_protection) {
           charging_overcurrent_protection = tmp_charging_overcurrent_protection;
-          jsonStr += "\"charging_overcurrent_p\":" + (String)flags.charging_overcurrent_protection + setDelim();
+          jsonStr += "\"ch_overcurrent_p\":" + (String)flags.charging_overcurrent_protection + setDelim();
         }
         bool tmp_discharge_overcurrent_protection = flags.discharge_overcurrent_protection;
         if ( tmp_discharge_overcurrent_protection != discharge_overcurrent_protection) {
           discharge_overcurrent_protection = tmp_discharge_overcurrent_protection;
-          jsonStr += "\"discharge_overcurrent_p\":" + (String)flags.discharge_overcurrent_protection + setDelim();
+          jsonStr += "\"disch_overcurrent_p\":" + (String)flags.discharge_overcurrent_protection + setDelim();
         } 
         bool tmp_short_circuit_protection = flags.short_circuit_protection;
         if ( tmp_short_circuit_protection != short_circuit_protection) {
@@ -244,7 +294,7 @@ void loop() {
         bool tmp_software_lock_mos = flags.software_lock_mos;
         if ( tmp_software_lock_mos != software_lock_mos) {
           software_lock_mos = tmp_software_lock_mos;
-          jsonStr += "\"software_lock_mos\":" + (String)flags.software_lock_mos + setDelim();
+          jsonStr += "\"sw_lock_mos\":" + (String)flags.software_lock_mos + setDelim();
         }
 
         // Get bms name
@@ -254,7 +304,7 @@ void loop() {
         if ( jsonStr.length() > 1) {
           jsonStr += "\"name\":\"" + (String)"\"" + name + (String)"\"";
           jsonStr += "}";
-          Serial.print(jsonStr);
+          //Serial.print(jsonStr);
           Serial.println();
           publishMqtt(jsonStr);
         } else {
@@ -280,10 +330,19 @@ void publishMqtt(String msg){
 
   Serial.println("Publishing:- ");
   Serial.println(payload);
-  if(aws.publish(MQTT_TOPIC, payload) == 0){// publishes payload and returns 0 upon success
+  if (aws.publish(MQTT_TOPIC, payload) == 0){// publishes payload and returns 0 upon success
     Serial.println("Success\n");
   }else{
-    Serial.println("Failed!\n");
+    Serial.println("Failed! waiting and then will try again....\n");
+    delay(1000);
+    Serial.println("trying again....");
+    
+    if (aws.publish(MQTT_TOPIC, payload) == 0){// publishes payload and returns 0 upon success
+      Serial.println("Success\n");
+    }else{
+      Serial.println("Failed on second attempt! moving on...\n");
+    
+    }
   }
 }
 

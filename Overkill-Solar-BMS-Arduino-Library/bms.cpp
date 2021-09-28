@@ -287,9 +287,15 @@ float OverkillSolarBms::get_ntc_temperature(uint8_t ntc_index) {
 // Returns the cell voltage, in volts
 float OverkillSolarBms::get_cell_voltage(uint8_t cell_index) {
     if (cell_index + 1 <= BMS_MAX_CELLS) {
-        float voltage = cell_voltages[cell_index];
-        voltage *= 0.001;  // Convert millivolts to volts
-        return voltage;
+        float millivolts = cell_voltages[cell_index];
+        return millivolts;
+//        Serial.print("millivolts:");
+//        Serial.print(millivolts);
+//        float volts = millivolts * 0.001;
+//        //voltage *= 0.001;  // Convert millivolts to volts
+//        Serial.print(" returning volts:");
+//        Serial.println(volts);
+//        return volts;
     }
     else {
         return 1.0 / 0.0;  // NaN
