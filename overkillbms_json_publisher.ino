@@ -6,7 +6,7 @@
 
 #define CLIENT_ID "battery_1"// thing unique ID, this id should be unique among all things associated with your AWS account.
 #define MQTT_TOPIC "$aws/things/test3/shadow/update" //topic for the MQTT data
-#define AWS_HOST "123123" // your host for uploading data to AWS,
+#define AWS_HOST "" // your host for uploading data to AWS,
 
 AWS_IOT aws;
 
@@ -376,6 +376,6 @@ void postData(){
 }
 
 String setDelim () {
-  String delim = ",";
+  String delim = ",\n";
   return delim;
 }
