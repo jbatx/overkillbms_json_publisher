@@ -4,9 +4,9 @@
 #include "HTTPClient.h"
 #include "AWS_IOT.h"
 
-#define CLIENT_ID "test_3"// thing unique ID, this id should be unique among all things associated with your AWS account.
+#define CLIENT_ID "battery_1"// thing unique ID, this id should be unique among all things associated with your AWS account.
 #define MQTT_TOPIC "$aws/things/test3/shadow/update" //topic for the MQTT data
-#define AWS_HOST "asdasds" // your host for uploading data to AWS,
+#define AWS_HOST "123123" // your host for uploading data to AWS,
 
 AWS_IOT aws;
 
@@ -103,7 +103,7 @@ void loop() {
         float tmpVoltage = bms.get_voltage();
         if (tmpVoltage != voltage) {
           voltage = tmpVoltage;
-          jsonStr += "\"voltge\":" + (String)voltage + setDelim();
+          jsonStr += "\"voltage\":" + (String)voltage + setDelim();
         }
         
          // Get current
@@ -297,14 +297,17 @@ void loop() {
           jsonStr += "\"sw_lock_mos\":" + (String)flags.software_lock_mos + setDelim();
         }
 
-        // Get bms name
-        String name = bms.get_bms_name();
-
         // Build the json we'll send
         if ( jsonStr.length() > 1) {
-          jsonStr += "\"name\":\"" + (String)"\"" + name + (String)"\"";
-          jsonStr += "}";
-          //Serial.print(jsonStr);
+        
+          // Add the device_id
+          jsonStr += "\"device_id\":\"" + (String)CLIENT_ID + "\"" + setDelim();
+
+          // add bms model
+          String name = bms.get_bms_name();
+          jsonStr += "\"model\":\"" + name + "\"" + setDelim();
+          jsonStr += "}\n";
+
           Serial.println();
           publishMqtt(jsonStr);
         } else {
@@ -372,6 +375,7 @@ void postData(){
     http.end();
 }
 
-char setDelim () {
-  return ',';
+String setDelim () {
+  String delim = ",";
+  return delim;
 }
