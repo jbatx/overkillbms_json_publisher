@@ -6,7 +6,7 @@
 
 #define CLIENT_ID "battery_1"// thing unique ID, this id should be unique among all things associated with your AWS account.
 #define MQTT_TOPIC "$aws/things/battery_1/shadow/update" //topic for the MQTT data
-#define AWS_HOST "asdasdas" // your host for uploading data to AWS,
+#define AWS_HOST "sdasdasd-ats.iot.us-east-2.amazonaws.com" // your host for uploading data to AWS,
 
 AWS_IOT aws;
 
@@ -166,10 +166,11 @@ void loop() {
           // See if balance status has changed
           if (cellBalanceStatus[i] != bs){
             cellBalanceStatus[i] = bs;
-            jsonBalStr += "\"c" + (String)cNum + "bal\":" + (String)bs + (i == 15) ? "" : ( i == 15 ) ? "" : setDelim();
+            jsonBalStr += "\"c" + (String)cNum + "bal\":" + (String)bs + setDelim();
           }
         }
         if(jsonBalStr.length() > 8){
+          jsonBalStr += "\"status\":" + (String)1;
           // Add the device_id
           jsonBalStr += "},\n";
           jsonBalStr += "\"device_id\":\"" + (String)CLIENT_ID + "\"";  
@@ -179,14 +180,12 @@ void loop() {
 
         // Get temp sensor vals
         float t;
-        int tNum = 0;
-        String jsonTempStr = "{\"ct\":{\n";
-        for (uint8_t i=0; i<bms.get_num_ntcs(); i++) {
+        String jsonTempStr = "{\"ts\":{\n";
+        for (uint8_t i=0; i<3; i++) {
           
           t = bms.get_ntc_temperature(i);
-          tNum = i + 1; // for easily interpretable names
           Serial.print("temp sensor ");
-          Serial.print(tNum);
+          Serial.print(i + 1);
           Serial.print(" temp:");
           Serial.print(t);
           Serial.print(" previous was ");
@@ -195,10 +194,11 @@ void loop() {
           // See if temp has changed
           if (tempSensors[i] != t){
             tempSensors[i] = t;
-            jsonTempStr += "\"ts" + (String)tNum + "\":" + (String)t + (i == 15) ? "" : ( i == 15 ) ? "" : setDelim();
+            jsonTempStr += "\"ts" + (String)(i + 1) + "\":" + (String)t + setDelim();
           }
         }
         if(jsonTempStr.length() > 8){
+          jsonTempStr += "\"status\":" + (String)1;
           // Add the device_id       
           jsonTempStr += "},\n";
           jsonTempStr += "\"device_id\":\"" + (String)CLIENT_ID + "\"";  
@@ -226,7 +226,7 @@ void loop() {
           // See if cell voltage has changed
           if (cellVoltages[i] != v){
             cellVoltages[i] = v;
-            jsonCellVoltageStr += "\"c" + (String)cNum + "v\":" + (String)v + ( i == 15 ) ? "" : setDelim();
+            jsonCellVoltageStr += "\"c" + (String)cNum + "v\":" + (String)v + setDelim();
           }
           if(v < tmpLowest){
             tmpLowest = v;
@@ -236,10 +236,8 @@ void loop() {
           }
         }
 
-        Serial.print("CELL VOLTAGE STRING LENGTH:");
-        Serial.println(jsonCellVoltageStr.length());
-
         if(jsonCellVoltageStr.length() > 8){
+          jsonCellVoltageStr += "\"status\":" + (String)1;
           // Add the device_id
           jsonCellVoltageStr += "},\n";
           jsonCellVoltageStr += "\"device_id\":\"" + (String)CLIENT_ID + "\"";  
@@ -268,72 +266,72 @@ void loop() {
         bool tmp_single_cell_overvoltage_protection = flags.single_cell_overvoltage_protection;
         if ( tmp_single_cell_overvoltage_protection != single_cell_overvoltage_protection) {
           single_cell_overvoltage_protection = tmp_single_cell_overvoltage_protection;
-          jsonProtectionStr += "\"sc_ov_p\":" + (String)flags.single_cell_overvoltage_protection + ( jsonProtectionStr.length() > 10 ) ? "" : setDelim();
+          jsonProtectionStr += "\"sc_ov_p\":" + (String)flags.single_cell_overvoltage_protection + setDelim();
         }
 
         bool tmp_single_cell_undervoltage_protection = flags.single_cell_undervoltage_protection; 
         if ( tmp_single_cell_undervoltage_protection != single_cell_undervoltage_protection) {
           single_cell_undervoltage_protection = tmp_single_cell_undervoltage_protection;
-          jsonProtectionStr += "\"sc_uv_p\":" + (String)flags.single_cell_undervoltage_protection + ( jsonProtectionStr.length() > 10 ) ? "" : setDelim();
+          jsonProtectionStr += "\"sc_uv_p\":" + (String)flags.single_cell_undervoltage_protection + setDelim();
         }
         bool tmp_whole_pack_overvoltage_protection = flags.whole_pack_overvoltage_protection;
         if ( tmp_whole_pack_overvoltage_protection != whole_pack_overvoltage_protection) {
           whole_pack_overvoltage_protection = tmp_whole_pack_overvoltage_protection;
-          jsonProtectionStr += "\"wp_ov_p\":" + (String)flags.whole_pack_overvoltage_protection + ( jsonProtectionStr.length() > 10 ) ? "" : setDelim();
+          jsonProtectionStr += "\"wp_ov_p\":" + (String)flags.whole_pack_overvoltage_protection + setDelim();
         }
         bool tmp_whole_pack_undervoltage_protection = flags.whole_pack_undervoltage_protection; 
         if ( tmp_whole_pack_undervoltage_protection != whole_pack_undervoltage_protection) {
           whole_pack_undervoltage_protection = tmp_whole_pack_undervoltage_protection;
-          jsonProtectionStr += "\"wp_uv_p\":" + (String)flags.whole_pack_undervoltage_protection + ( jsonProtectionStr.length() > 10 ) ? "" : setDelim();
+          jsonProtectionStr += "\"wp_uv_p\":" + (String)flags.whole_pack_undervoltage_protection + setDelim();
         }
         bool tmp_charging_over_temperature_protection = flags.charging_over_temperature_protection; 
         if ( tmp_charging_over_temperature_protection != charging_over_temperature_protection) {
           charging_over_temperature_protection = tmp_charging_over_temperature_protection;
-          jsonProtectionStr += "\"ch_ot_p\":" + (String)flags.charging_over_temperature_protection + ( jsonProtectionStr.length() > 10 ) ? "" : setDelim();
+          jsonProtectionStr += "\"ch_ot_p\":" + (String)flags.charging_over_temperature_protection + setDelim();
         }
         bool tmp_charging_low_temperature_protection = flags.charging_low_temperature_protection;
         if ( tmp_charging_low_temperature_protection != charging_low_temperature_protection) {
           charging_low_temperature_protection = tmp_charging_low_temperature_protection;
-          jsonProtectionStr += "\"ch_lt_p\":" + (String)flags.charging_low_temperature_protection + ( jsonProtectionStr.length() > 10 ) ? "" : setDelim();
+          jsonProtectionStr += "\"ch_lt_p\":" + (String)flags.charging_low_temperature_protection + setDelim();
         } 
         bool tmp_discharge_over_temperature_protection = flags.discharge_over_temperature_protection; 
         if ( tmp_discharge_over_temperature_protection != discharge_over_temperature_protection) {    
           discharge_over_temperature_protection = tmp_discharge_over_temperature_protection;
-          jsonProtectionStr += "\"disch_ot_p\":" + (String)flags.discharge_over_temperature_protection + ( jsonProtectionStr.length() > 10 ) ? "" : setDelim();
+          jsonProtectionStr += "\"disch_ot_p\":" + (String)flags.discharge_over_temperature_protection + setDelim();
         }
         bool tmp_discharge_low_temperature_protection = flags.discharge_low_temperature_protection;
         if ( tmp_discharge_low_temperature_protection != discharge_low_temperature_protection) {
           discharge_low_temperature_protection = tmp_discharge_low_temperature_protection;
-          jsonProtectionStr += "\"disch_lt_p\":" + (String)flags.discharge_low_temperature_protection + ( jsonProtectionStr.length() > 10 ) ? "" : setDelim();
+          jsonProtectionStr += "\"disch_lt_p\":" + (String)flags.discharge_low_temperature_protection + setDelim();
         } 
         bool tmp_charging_overcurrent_protection = flags.charging_overcurrent_protection;
         if ( tmp_charging_overcurrent_protection != charging_overcurrent_protection) {
           charging_overcurrent_protection = tmp_charging_overcurrent_protection;
-          jsonProtectionStr += "\"ch_oc_p\":" + (String)flags.charging_overcurrent_protection + ( jsonProtectionStr.length() > 10 ) ? "" : setDelim();
+          jsonProtectionStr += "\"ch_oc_p\":" + (String)flags.charging_overcurrent_protection + setDelim();
         }
         bool tmp_discharge_overcurrent_protection = flags.discharge_overcurrent_protection;
         if ( tmp_discharge_overcurrent_protection != discharge_overcurrent_protection) {
           discharge_overcurrent_protection = tmp_discharge_overcurrent_protection;
-          jsonProtectionStr += "\"disch_oc_p\":" + (String)flags.discharge_overcurrent_protection + ( jsonProtectionStr.length() > 10 ) ? "" : setDelim();
+          jsonProtectionStr += "\"disch_oc_p\":" + (String)flags.discharge_overcurrent_protection + setDelim();
         } 
         bool tmp_short_circuit_protection = flags.short_circuit_protection;
         if ( tmp_short_circuit_protection != short_circuit_protection) {
           short_circuit_protection = tmp_short_circuit_protection;
-          jsonProtectionStr += "\"short_circ_p\":" + (String)flags.short_circuit_protection + ( jsonProtectionStr.length() > 10 ) ? "" : setDelim();
+          jsonProtectionStr += "\"short_circ_p\":" + (String)flags.short_circuit_protection + setDelim();
         } 
         bool tmp_front_end_detection_ic_error = flags.front_end_detection_ic_error;
         if ( tmp_front_end_detection_ic_error != front_end_detection_ic_error) {
           front_end_detection_ic_error = tmp_front_end_detection_ic_error;
-          jsonProtectionStr += "\"front_end_det_ic_error\":" + (String)flags.front_end_detection_ic_error + ( jsonProtectionStr.length() > 10 ) ? "" : setDelim();
+          jsonProtectionStr += "\"front_end_det_ic_error\":" + (String)flags.front_end_detection_ic_error + setDelim();
         }
         bool tmp_software_lock_mos = flags.software_lock_mos;
         if ( tmp_software_lock_mos != software_lock_mos) {
           software_lock_mos = tmp_software_lock_mos;
-          jsonProtectionStr += "\"sw_lock_mos\":" + (String)flags.software_lock_mos + ( jsonProtectionStr.length() > 10 ) ? "" : setDelim();
+          jsonProtectionStr += "\"sw_lock_mos\":" + (String)flags.software_lock_mos + setDelim();
         }
-
         
-        if(jsonProtectionStr.length() > 10){         
+        if(jsonProtectionStr.length() > 10){    
+          jsonProtectionStr += "\"status\":" + (String)1;      
           // Add the device_id
           jsonProtectionStr += "},\n";
           jsonProtectionStr += "\"device_id\":\"" + (String)CLIENT_ID + "\"";  
