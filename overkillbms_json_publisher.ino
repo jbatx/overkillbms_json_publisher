@@ -6,7 +6,10 @@
 
 #define CLIENT_ID "battery_1"// thing unique ID, this id should be unique among all things associated with your AWS account.
 #define MQTT_TOPIC "$aws/things/battery_1/shadow/update" //topic for the MQTT data
-#define AWS_HOST "sdasdasd-ats.iot.us-east-2.amazonaws.com" // your host for uploading data to AWS,
+#define AWS_HOST "asdasd-ats.iot.us-east-2.amazonaws.com" // your host for uploading data to AWS,
+
+const char* ssid     = "asdasd";
+const char* password = "asdad";
 
 AWS_IOT aws;
 
@@ -47,6 +50,48 @@ std::vector<float> cellVoltages(16);
 std::vector<float> cellBalanceStatus(16);
 std::vector<float> tempSensors(3);
 
+bool checkWiFi(){
+  int wifiWait = 0;
+  int maxWifiWait = 30;
+  while (WiFi.status() != WL_CONNECTED) {
+    if(wifiWait > maxWifiWait) {
+      Serial.println("failed to connect wifi");
+      Serial.print("Wifi status: ");
+      Serial.println(WiFi.status());
+      return false;
+    }
+    Serial.print(".");
+    delay(500);
+    wifiWait++;
+  }
+  Serial.print("Wifi status: ");
+  Serial.println(WiFi.status());
+  return true;
+}
+
+
+/*
+Since we try to connect Wifi in multiple places - putting this in a function
+*/
+bool connectWiFi(){
+  
+  delay(10);
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+
+  WiFi.begin(ssid, password);
+  if(!checkWiFi()){
+    return false;
+  }
+
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+  return true;
+}
+
 void setup() {
     static const uint8_t LED_BUILTIN = 2;
     // Connect to BMS
@@ -60,24 +105,11 @@ void setup() {
     bms.set_query_rate(2000);  // Set query rate to 2000 milliseconds (2 seconds)
     last_soc_check_time = 0;
 
-    // Connect to wifi
-    const char* ssid     = "Satau";
-    const char* password = "losthorizontx";
-    delay(10);
-    Serial.println();
-    Serial.print("Connecting to ");
-    Serial.println(ssid);
-
-    WiFi.begin(ssid, password);
-
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
+    if(!connectWiFi()){
+      Serial.print("restart...");
+      delay(30000);
+      ESP.restart();     
     }
-    Serial.println("");
-    Serial.println("WiFi connected");
-    Serial.println("IP address: ");
-    Serial.println(WiFi.localIP());
 
     // Connect to AWS MQTT
     if(aws.connect(AWS_HOST, CLIENT_ID) == 0){ // connects to host and returns 0 upon success
@@ -85,6 +117,9 @@ void setup() {
       publishMqtt("{\"status\":\"retarted\",\"device_id\":\"battery_1\"}\n");
     }else {
       Serial.println("  Connection failed!\n make sure your subscription to MQTT in the test page");
+      Serial.println("rebooting...");
+      delay(30000);
+      ESP.restart();      
     }
 
 
@@ -95,9 +130,16 @@ void loop() {
 
     if (millis() - last_soc_check_time > SOC_POLL_RATE ||  last_soc_check_time == 0) {
 
+        // verify wifi is still good
+        if(!checkWiFi()){
+          Serial.print("restarting...");
+          delay(30000);
+          ESP.restart();
+        }
+
          String jsonStr = "{\"pack\":{\n";
          /**
-         Gether up data from the bms
+         Gather up data from the bms
          */
 
          // Get voltage
@@ -386,8 +428,9 @@ void publishMqtt(String msg){
     if (aws.publish(MQTT_TOPIC, payload) == 0){// publishes payload and returns 0 upon success
       Serial.println("Success\n");
     }else{
-      Serial.println("Failed on second attempt! moving on...\n");
-    
+      Serial.println("Failed on second attempt! restarting...\n");
+      delay(30000);
+      ESP.restart();
     }
   }
 }
