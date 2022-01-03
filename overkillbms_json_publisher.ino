@@ -8,7 +8,7 @@
 #include <HTTPClient.h>
 #include <AWS_IOT.h>
 
-// bms object has to be instanticated before the Adafruit_SSD1306 display(...   otherwise we get a panic.  No idea why
+// bms object has to be instantiated before the Adafruit_SSD1306 display(...   otherwise we get a panic.  No idea why
 OverkillSolarBms bms = OverkillSolarBms();
 
 #define SCREEN_WIDTH 128    // OLED display width, in pixels
