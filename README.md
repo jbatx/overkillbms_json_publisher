@@ -50,6 +50,19 @@ The basic AWS IoT Core set up steps are
 4. Create a policy
 5. Make sure the policy, cert and thing are all attached to one another
 6. Update the aws_iot_certificates.c file (watch the youtube video linked above)
+
+The basic IoT Core to Timestream set up
+1. Make a rule in IoT Core to send events to a new Timestream database and table
+2. Use a query such as this one as the SQL Select in the above rule
+
+SELECT pack.current as current, pack.voltage as voltage, pack.vdiff as vdiff, pack.lcv as lcv, pack.hcv as hcv, pack.soc as soc, ts.ts1 as ts1, ts.ts2 as ts2, ts.ts3 as ts3, prot.sc_ov_p as sc_ov_p, prot.sc_uv_p as sc_uv_p FROM '$aws/things/+/shadow/update'
+
+The basics of setting Timestream to Quicksight
+1. Make sure Quicksight has permission to access Timestream
+2. Create a Timestream data source in quicksight
+3. Make your dashboard
+
+...Adapt the SQL query as needed to have more or less params available within quicksight.
  
 ##Developer notes
 
