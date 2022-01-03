@@ -1,24 +1,33 @@
-#include "bms.h"
-#include "options.h"
-#include "WiFi.h"
-#include "HTTPClient.h"
-#include "AWS_IOT.h"
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#include <bms.h>
+#include <options.h>
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <AWS_IOT.h>
 
-#define CLIENT_ID "battery_1"// thing unique ID, this id should be unique among all things associated with your AWS account.
-#define MQTT_TOPIC "$aws/things/battery_1/shadow/update" //topic for the MQTT data
-#define AWS_HOST "asdasd-ats.iot.us-east-2.amazonaws.com" // your host for uploading data to AWS,
+OverkillSolarBms bms = OverkillSolarBms();
 
-const char* ssid     = "asdasd";
-const char* password = "asdad";
+#define SCREEN_WIDTH 128    // OLED display width, in pixels
+#define SCREEN_HEIGHT 64    // OLED display height, in pixels
+#define OLED_RESET -1       // Reset pin # (or -1 if sharing Arduino reset pin)
+ 
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+ 
+#define CLIENT_ID "battery_3"// thing unique ID, this id should be unique among all things associated with your AWS account.
+#define MQTT_TOPIC "$aws/things/battery_3/shadow/update" //topic for the MQTT data
+#define AWS_HOST "123123123-ats.iot.us-east-2.amazonaws.com" // your host for uploading data to AWS,
+
+const char* ssid     = "smartypants";
+const char* password = "123123123";
 
 AWS_IOT aws;
 
-const char* host = "https://postb.in/1631759911516-7197994671296";
-
-OverkillSolarBms bms = OverkillSolarBms();
 uint32_t last_soc_check_time;
 
-#define SOC_POLL_RATE 60000  // Send every n milliseconds
+#define SOC_POLL_RATE 30000  // Send every n milliseconds
 
 HardwareSerial HWSerial(2); // Define a Serial port instance called 'Receiver' using serial port 2
 
@@ -46,6 +55,7 @@ bool discharge_overcurrent_protection;
 bool short_circuit_protection; 
 bool front_end_detection_ic_error;
 bool software_lock_mos;
+bool protection;
 std::vector<float> cellVoltages(16);
 std::vector<float> cellBalanceStatus(16);
 std::vector<float> tempSensors(3);
@@ -105,6 +115,11 @@ void setup() {
     bms.set_query_rate(2000);  // Set query rate to 2000 milliseconds (2 seconds)
     last_soc_check_time = 0;
 
+    // Set up the display
+    display.begin(SSD1306_SWITCHCAPVCC, 0x3C); //initialize with the I2C addr 0x3C (128x64)
+    display.display();
+    delay(10);
+
     if(!connectWiFi()){
       Serial.print("restart...");
       delay(30000);
@@ -114,7 +129,7 @@ void setup() {
     // Connect to AWS MQTT
     if(aws.connect(AWS_HOST, CLIENT_ID) == 0){ // connects to host and returns 0 upon success
       Serial.println("  Connected to AWS\n  Done.");
-      publishMqtt("{\"status\":\"retarted\",\"device_id\":\"battery_1\"}\n");
+      publishMqtt("{\"status\":\"retarted\",\"device_id\":\"battery_3\"}\n");
     }else {
       Serial.println("  Connection failed!\n make sure your subscription to MQTT in the test page");
       Serial.println("rebooting...");
@@ -122,22 +137,33 @@ void setup() {
       ESP.restart();      
     }
 
-
 }
 
 void loop() {
     bms.main_task();
 
+    if (millis() > 7200000) {
+      publishMqtt("{\"device_id\": \"battery_3\", \"restart\":" + (String)millis() + "}\n");
+      delay(3000);
+      ESP.restart();
+    }
+
     if (millis() - last_soc_check_time > SOC_POLL_RATE ||  last_soc_check_time == 0) {
+
+        protection = false;
 
         // verify wifi is still good
         if(!checkWiFi()){
-          Serial.print("restarting...");
-          delay(30000);
+          publishMqtt("{\"device_id\": \"battery_3\", \"wifi_failure_restart\":" + (String)millis() + "}\n");
+          delay(3000);
           ESP.restart();
         }
 
          String jsonStr = "{\"pack\":{\n";
+
+         // Always sent something
+         publishMqtt("{\"device_id\": \"battery_3\", \"heartbeat\":" + (String)millis() + "}\n");
+         
          /**
          Gather up data from the bms
          */
@@ -309,6 +335,7 @@ void loop() {
         if ( tmp_single_cell_overvoltage_protection != single_cell_overvoltage_protection) {
           single_cell_overvoltage_protection = tmp_single_cell_overvoltage_protection;
           jsonProtectionStr += "\"sc_ov_p\":" + (String)flags.single_cell_overvoltage_protection + setDelim();
+          protection = true;
         }
 
         bool tmp_single_cell_undervoltage_protection = flags.single_cell_undervoltage_protection; 
@@ -372,7 +399,8 @@ void loop() {
           jsonProtectionStr += "\"sw_lock_mos\":" + (String)flags.software_lock_mos + setDelim();
         }
         
-        if(jsonProtectionStr.length() > 10){    
+        if(jsonProtectionStr.length() > 10){ 
+          protection = true;   
           jsonProtectionStr += "\"status\":" + (String)1;      
           // Add the device_id
           jsonProtectionStr += "},\n";
@@ -398,14 +426,50 @@ void loop() {
         } else {
           Serial.println("Nothing has chagned");
         }
+
+        //Update the display
+        display.clearDisplay();
+    
+        display.setCursor(0,0);
+        display.setTextSize(1);
+        display.setTextColor(WHITE);
+        display.print(CLIENT_ID);
+        display.print("  ");
+        display.println(protection ? "PROT" : "OK");
+        
+        display.setCursor(0,15);
+        display.setTextSize(1);
+
+        display.print(bms.get_voltage());
+        display.print("v ");
+        display.print(bms.get_current());
+        display.print("a ");
+        display.print(bms.get_state_of_charge());  
+        display.print("%");
+        display.display();
+
+        display.setCursor(0,27);
+        display.setTextSize(1);
+        display.setTextColor(WHITE);
+        display.print("charging: ");
+        display.println(bms.get_charge_mosfet_status() ? "on" : "off");
+
+        display.setCursor(0,41);
+        display.setTextSize(1);
+        display.setTextColor(WHITE);
+        display.print("discharging: ");
+        display.println(bms.get_discharge_mosfet_status() ? "on" : "off");
+
+        display.setCursor(0,53);
+        display.setTextSize(1);
+        display.setTextColor(WHITE);
+        display.print("cv diff: ");
+        display.print(voltageDiff);
+        display.println("mv");
+        display.display();
       
          // record the time before we hit the server
-         last_soc_check_time = millis();
-
-         /**
-          Send the data through the interw3bz
-          */
-         //postData();
+        last_soc_check_time = millis();
          
     }
 }
@@ -433,32 +497,6 @@ void publishMqtt(String msg){
       ESP.restart();
     }
   }
-}
-
-void postData(){
-  // Use HTTPClient to connect
-    const char* url = "https://postb.in/1631765636111-0645570172928";
-    Serial.print("Requesting URL: ");
-    Serial.println(url);
-    HTTPClient http;
-    http.begin(url);
-    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-    String httpRequestData = "foo=123&bar=baz";    
-    long rn;       
-    rn = random(200);
-    httpRequestData += "&randnum=";
-    httpRequestData += rn;
-    int httpCode = http.POST(httpRequestData);
-        
-    if(httpCode > 0){  
-      String payload = http.getString();
-      Serial.println(httpCode);
-      Serial.println(payload);
-    } else {
-      Serial.println("Error on HTTP request");
-    }
-
-    http.end();
 }
 
 String setDelim () {
