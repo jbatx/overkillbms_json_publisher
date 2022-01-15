@@ -19,16 +19,16 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
  
 #define CLIENT_ID "battery_3"// thing unique ID, this id should be unique among all things associated with your AWS account.
 #define MQTT_TOPIC "$aws/things/battery_3/shadow/update" //topic for the MQTT data
-#define AWS_HOST "123123123-ats.iot.us-east-2.amazonaws.com" // your host for uploading data to AWS,
+#define AWS_HOST "asdasdas-ats.iot.us-east-2.amazonaws.com" // your host for uploading data to AWS,
 
-const char* ssid     = "smartypants";
-const char* password = "123123123";
+const char* ssid     = "hop2";
+const char* password = "asdasdasd";
 
 AWS_IOT aws;
 
 uint32_t last_soc_check_time;
 
-#define SOC_POLL_RATE 30000  // Send every n milliseconds
+#define SOC_POLL_RATE 1000  // Send every n milliseconds
 
 HardwareSerial HWSerial(2); // Define a Serial port instance called 'Receiver' using serial port 2
 
@@ -110,20 +110,25 @@ void setup() {
     //Serial1.begin(9600);
 
     Serial.begin(115200);                                                   // Define and start serial monitor
+    Serial.println("hello");
+
     HWSerial.begin(9600, SERIAL_8N1, Receiver_Rxd_pin, Receiver_Txd_pin);
-    
+
     bms.begin(&HWSerial);
     bms.set_query_rate(2000);  // Set query rate to 2000 milliseconds (2 seconds)
     last_soc_check_time = 0;
 
     // Set up the display
     display.begin(SSD1306_SWITCHCAPVCC, 0x3C); //initialize with the I2C addr 0x3C (128x64)
+    display.setCursor(0,0);
+    display.setTextSize(2);
+    display.setTextColor(WHITE);
+    display.println(CLIENT_ID);
     display.display();
-    delay(10);
 
     if(!connectWiFi()){
       Serial.print("restart...");
-      delay(30000);
+      delay(5000);
       ESP.restart();     
     }
 
@@ -134,10 +139,9 @@ void setup() {
     }else {
       Serial.println("  Connection failed!\n make sure your subscription to MQTT in the test page");
       Serial.println("rebooting...");
-      delay(30000);
+      delay(5000);
       ESP.restart();      
     }
-
 }
 
 void loop() {
@@ -145,18 +149,18 @@ void loop() {
 
     if (millis() > 7200000) {
       publishMqtt("{\"device_id\": \"battery_3\", \"restart\":" + (String)millis() + "}\n");
-      delay(3000);
       ESP.restart();
     }
 
     if (millis() - last_soc_check_time > SOC_POLL_RATE ||  last_soc_check_time == 0) {
+
+        Serial.print("loop");
 
         protection = false;
 
         // verify wifi is still good
         if(!checkWiFi()){
           publishMqtt("{\"device_id\": \"battery_3\", \"wifi_failure_restart\":" + (String)millis() + "}\n");
-          delay(3000);
           ESP.restart();
         }
 
@@ -420,9 +424,6 @@ void loop() {
           jsonStr += "\"device_id\":\"" + (String)CLIENT_ID + "\"";
           jsonStr += "}\n";
 
-          Serial.println();
-          Serial.print("pausing before sending...");
-          delay(5000);
           publishMqtt(jsonStr);
         } else {
           Serial.println("Nothing has chagned");
@@ -487,14 +488,13 @@ void publishMqtt(String msg){
     Serial.println("Success\n");
   }else{
     Serial.println("Failed! waiting and then will try again....\n");
-    delay(5000);
+    delay(1000);
     Serial.println("trying again....");
     
     if (aws.publish(MQTT_TOPIC, payload) == 0){// publishes payload and returns 0 upon success
       Serial.println("Success\n");
     }else{
       Serial.println("Failed on second attempt! restarting...\n");
-      delay(30000);
       ESP.restart();
     }
   }
