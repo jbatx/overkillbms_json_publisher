@@ -130,6 +130,9 @@ void OverkillSolarBms::set_query_rate(uint16_t rate) {
 
 float OverkillSolarBms::get_voltage() {
     // Voltage is stored internally as a uint16_t in units of 10mV
+#ifdef FAKE_BMS
+    return (rand() % 1000 + 4700) * 0.01;
+#endif    
     return voltage * 0.01;
 }
 
@@ -138,7 +141,10 @@ float OverkillSolarBms::get_current() {
 
     // NOTE: There is an error in the API documentation:
     // When charging, the units are 10 mA.
-    // When discharging, the units are 
+    // When discharging, the units are
+#ifdef FAKE_BMS
+    return (rand() % 2000 + 500) * 0.01;
+#endif    
     return current * 0.01;
 }
 
@@ -175,6 +181,13 @@ ProductionDate OverkillSolarBms::get_production_date() {
 
 bool OverkillSolarBms::get_balance_status(uint8_t cell_index) {
     if (cell_index <= 31) {
+#ifdef FAKE_BMS
+    if(rand() % 2 == 0)
+    {
+        return false;
+    }
+    return true;
+#endif 
         return (balance_status >> cell_index) & 1;
     }
     else {
@@ -248,14 +261,31 @@ uint8_t OverkillSolarBms::get_state_of_charge() {
     // note: the result is not bounds-checked, I assume that the BMS could
     // return higher than 100%, but rather than hiding that here and
     // bounding it to 100, it is returned as-is.
+#ifdef FAKE_BMS
+    return rand() % 100 + 0;
+#endif 
     return remaining_soc;
 }
 
 bool OverkillSolarBms::get_discharge_mosfet_status() {
+#ifdef FAKE_BMS
+    if(rand() % 2 == 0)
+    {
+        return false;
+    }
+    return true;
+#endif 
     return (mosfet_status >> 1) & 1;
 }
 
 bool OverkillSolarBms::get_charge_mosfet_status() {
+#ifdef FAKE_BMS
+    if(rand() % 2 == 0)
+    {
+        return false;
+    }
+    return true;
+#endif 
     return mosfet_status & 1;
 }
 
@@ -270,6 +300,9 @@ uint8_t OverkillSolarBms::get_num_ntcs() {
 // Returns the temperature, in celsius
 float OverkillSolarBms::get_ntc_temperature(uint8_t ntc_index) {
     if (ntc_index + 1 <= BMS_MAX_NTCs) {
+#ifdef FAKE_BMS
+    return rand() % 25 + 0;
+#endif 
         float temp = ntc_temps[ntc_index];
         temp *= 0.1;  // Convert fixed-precision int 0.1 degrees K per LSB to float degrees K
         temp -= 273.15;  // Convert Kelvin to Celsius
@@ -286,7 +319,10 @@ float OverkillSolarBms::get_ntc_temperature(uint8_t ntc_index) {
 
 // Returns the cell voltage, in volts
 float OverkillSolarBms::get_cell_voltage(uint8_t cell_index) {
-    if (cell_index + 1 <= BMS_MAX_CELLS) {
+    if (cell_index + 1 <= BMS_MAX_CELLS) {    
+#ifdef FAKE_BMS
+    return rand() % 40 + 3300;
+#endif 
         float millivolts = cell_voltages[cell_index];
         return millivolts;
 //        Serial.print("millivolts:");
