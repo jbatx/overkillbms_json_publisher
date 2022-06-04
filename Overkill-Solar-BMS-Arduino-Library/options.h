@@ -17,6 +17,6 @@
 #define BMS_MAX_NTCs        3  // Preallocates this number of temperatures in the array
 #define BMS_MAX_RX_DATA_LEN 64  // Preallocates this number of bytes to store RX data field
 
-#define FAKE_BMS           // for development when you don't actually have a bms but you need data like you do
+//#define FAKE_BMS           // for development when you don't actually have a bms but you need data like you do
 
 #endif  // OPTIONS_H 
